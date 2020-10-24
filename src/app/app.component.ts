@@ -1,4 +1,4 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { DataService } from './services/data.service';
 import { ChartDataSets, ChartOptions, ChartType } from 'chart.js';
 import { Color, BaseChartDirective, Label } from 'ng2-charts';
@@ -9,15 +9,21 @@ import { Color, BaseChartDirective, Label } from 'ng2-charts';
 })
 
 export class AppComponent {
+  activeChartTitle = "";
 
-  public dataSet: ChartDataSets[] = [
-    { data: [65, 59, 80, 81, 56, 55, 40], label: 'Profits', fill: false, backgroundColor: 'rgba(255,0,0,0.3)' },
-    { data: [180, 480, 770, 90, 1000, 270, 400], label: 'Volume', yAxisID: 'y-axis-1', type: 'bar', backgroundColor: 'rgba(77,83,96,0.2)' }
+  charts: Chart[] = [];
+
+  dataSet: ChartDataSets[] = [
+    { data: [], label: '', fill: false, backgroundColor: 'rgba(255,0,0,0.3)' },
+    { data: [], label: '', yAxisID: 'y-axis-1', type: 'bar', backgroundColor: 'rgba(77,83,96,0.2)' }
+    //{ data: [65, 59, 80, 81, 56, 55, 40], label: 'Profits', fill: false, backgroundColor: 'rgba(255,0,0,0.3)' }, // , tension: 0
+    //{ data: [180, 480, 770, 90, 1000, 270, 400], label: 'Volume', yAxisID: 'y-axis-1', type: 'bar', backgroundColor: 'rgba(77,83,96,0.2)' }
   ];
 
-  public chartLabels: Label[] = ['January', 'February', 'March', 'April', 'May', 'June', 'July'];
+  chartLabels: Label[] = [];
+  //public chartLabels: Label[] = ['January', 'February', 'March', 'April', 'May', 'June', 'July'];
 
-  public lineChartOptions: (ChartOptions & { annotation: any }) = {
+  lineChartOptions: (ChartOptions & { annotation: any }) = {
     responsive: true,
 
     scales: {
@@ -95,8 +101,93 @@ export class AppComponent {
   //
   // Construct.
   //
-  constructor(private dataService: DataService) { }
+  constructor(private dataService: DataService, private cdr: ChangeDetectorRef) {
+    // Receive data from the node app.
+    this.dataService.onData.subscribe((res) => {
+      this.onData(res);
+    });
+  }
 
+  //
+  // Process income data.
+  //
+  onData(res: any) {
+    //console.log(res);
+
+    // Get the chart object or create it
+    const chart = this.getOrCreateChartObjByTitle(res.title)
+    this.setActiveChartByTitle(chart.Title)
+
+    // Set X Axis
+    this.chartLabels.push(res.data[0])
+
+    // Set y Axis
+    for (let i = 0; i < res.labels.length; i++) {
+      this.dataSet[i].label = res.labels[i]
+      this.dataSet[i].data.push(res.data[i + 1])
+    }
+
+    // Update the chart.
+    this.chart.update();
+    this.cdr.detectChanges();
+  }
+
+  //
+  // Clear all charts.
+  //
+  clearAllCharts(event) {
+    event.preventDefault();
+    this.charts = []
+    this.activeChartTitle = ""
+    this.dataSet[0].data = []
+    this.dataSet[1].data = []
+    this.dataSet[0].label = ""
+    this.dataSet[1].label = ""
+    this.chart.update()
+  }
+
+  //
+  // Set active chart by title
+  //
+  setActiveChartByTitle(title: string) {
+    for (let i = 0; i < this.charts.length; i++) {
+      if (this.charts[i].Title == title) {
+        this.activeChartTitle = title
+        this.charts[i].Active = true
+      } else {
+        this.charts[i].Active = false
+      }
+    }
+  }
+
+  //
+  // Get chart object by title
+  //
+  getOrCreateChartObjByTitle(title: string) {
+    // See if this is known chart
+    for (let i = 0; i < this.charts.length; i++) {
+      const chart = this.charts[i];
+      if (chart.Title == title) {
+        return chart
+      }
+    }
+
+    // Guess it is a new chart
+    let chart: Chart = {
+      Title: title,
+      Active: false
+    }
+
+    // Return new chart.
+    this.charts.push(chart);
+    return chart;
+  }
+
+}
+
+export interface Chart {
+  Title: string,
+  Active: boolean
 }
 
 /* End File */

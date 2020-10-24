@@ -1,19 +1,10 @@
 <div class="w-full">
     <nav class="flex items-center bg-gray-200">
-        <a href="#" class="flex-1 text-center px-3 py-2 font-medium text-xs leading-5 rounded-md text-gray-600 hover:text-gray-800 focus:outline-none focus:text-gray-800 focus:bg-gray-200">
-            Super Chart #1
-        </a>
-        <a href="#" class="flex-1 text-center ml-4 px-3 py-2 font-medium text-xs leading-5 rounded-md text-gray-600 hover:text-gray-800 focus:outline-none focus:text-gray-800 focus:bg-gray-200">
-            Super Chart #2
+        <a *ngFor="let row of charts" href="#" class="flex-1 text-center px-3 py-2 font-medium text-xs leading-5 rounded-md text-gray-600 hover:text-gray-800 focus:outline-none focus:text-gray-800 focus:bg-gray-200">
+            {{ row.Title }}
         </a>
         <a href="#" class="flex-1 text-center ml-4 px-3 py-2 font-medium text-xs leading-5 rounded-md text-gray-800 bg-blue-300 focus:outline-none focus:bg-gray-300">
             Super Chart #3
-        </a>
-        <a href="#" class="flex-1 text-center ml-4 px-3 py-2 font-medium text-xs leading-5 rounded-md text-gray-600 hover:text-gray-800 focus:outline-none focus:text-gray-800 focus:bg-gray-200">
-            Super Chart #4
-        </a>
-        <a href="#" class="flex-1 text-center ml-4 px-3 py-2 font-medium text-xs leading-5 rounded-md text-gray-600 hover:text-gray-800 focus:outline-none focus:text-gray-800 focus:bg-gray-200">
-            Super Chart #5
         </a>
     </nav>
 </div>
@@ -22,10 +13,11 @@
 <div class="fixed inset-0 overflow-hidden mt-9">
 
     <div class="p-6">
-        <p>Super Chart #3</p>
+        <p>{{ activeChartTitle }}</p>
         <div class="w-full h-full">
             <canvas baseChart [datasets]="dataSet" [labels]="chartLabels" [options]="lineChartOptions" [legend]="lineChartLegend" [chartType]="lineChartType"></canvas>
         </div>
+        <a href="#" (click)="clearAllCharts($event)">Clear Charts</a>
     </div>
 
     <div class="hidden absolute inset-0 overflow-hidden ">
