@@ -129,7 +129,7 @@ export class AppComponent {
 
     // Update the chart.
     this.chart.update();
-    this.cdr.detectChanges();
+    //this.cdr.detectChanges();
   }
 
   //
@@ -138,6 +138,7 @@ export class AppComponent {
   clearAllCharts(event) {
     event.preventDefault();
     this.charts = []
+    this.chartLabels = []
     this.activeChartTitle = ""
     this.dataSet[0].data = []
     this.dataSet[1].data = []
