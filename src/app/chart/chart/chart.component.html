@@ -1,0 +1,5 @@
+<p>{{ chartTitle }}</p>
+
+<div class="w-full h-full">
+    <canvas baseChart [datasets]="chartConfig.DataSet" [labels]="chartConfig.Labels" [options]="chartConfig.ChartOptions" [legend]="lineChartLegend" [chartType]="lineChartType"></canvas>
+</div>

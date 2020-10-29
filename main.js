@@ -11,6 +11,7 @@ var win = null;
 const server = http.createServer(function (req, res) {
   // Parse request.
   const queryObject = url.parse(req.url, true).query;
+  const configs = JSON.parse(queryObject.configs.trim());
   const title = queryObject.title.trim();
   const labels = queryObject.labels.trim().split(",");
   let data = queryObject.data.trim().split(",");
@@ -26,7 +27,12 @@ const server = http.createServer(function (req, res) {
   }
 
   // Send data to frontend
-  win.webContents.send("on-data", { title: title, labels: labels, data: data });
+  win.webContents.send("on-data", {
+    title: title,
+    labels: labels,
+    data: data,
+    configs: configs,
+  });
 
   // Return happy.
   res.writeHead(204);
@@ -61,7 +67,7 @@ function createWindow() {
   // );
 
   win.loadURL("http://localhost:4200");
-  //win.webContents.openDevTools();
+  win.webContents.openDevTools();
 }
 
 app.whenReady().then(createWindow);

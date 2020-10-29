@@ -1,8 +1,15 @@
+//
+// Date: 10/29/2020
+// Author(s): Spicer Matthews (spicer@options.cafe)
+// Copyright: 2020 Cloudmanic Labs, LLC. All rights reserved.
+//
+
+import { Subscription } from 'rxjs';
 import { Component, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { DataService } from './services/data.service';
 import { ChartDataSets, ChartOptions, ChartType } from 'chart.js';
 import { Color, BaseChartDirective, Label } from 'ng2-charts';
-import { count } from 'console';
+import { Chart } from './chart/chart/chart.component';
 
 @Component({
   selector: 'app-root',
@@ -10,131 +17,52 @@ import { count } from 'console';
 })
 
 export class AppComponent {
-  charts: Chart[] = [];
+  // Store any subscriptions we need to destroy in the end.
+  private readonly subscriptions = new Subscription();
 
-  activeChart: Chart = {
-    Title: "",
-    Active: false,
-    Labels: [],
-    DataSet: [],
-    ChartOptions: { responsive: true, scales: {}, annotation: {} }
-  };
+  activeChart: string = '';
 
-  // dataSet: ChartDataSets[] = [
-  //   //{ data: [], label: '', fill: false, backgroundColor: 'rgba(255,0,0,0.3)' },
-  //   //{ data: [], label: '', yAxisID: 'y-axis-1', type: 'bar', backgroundColor: 'rgba(77,83,96,0.2)' }
-  //   //{ data: [65, 59, 80, 81, 56, 55, 40], label: 'Profits', fill: false, backgroundColor: 'rgba(255,0,0,0.3)' }, // , tension: 0
-  //   //{ data: [180, 480, 770, 90, 1000, 270, 400], label: 'Volume', yAxisID: 'y-axis-1', type: 'bar', backgroundColor: 'rgba(77,83,96,0.2)' }
-  // ];
+  charts: Map<string, Chart> = new Map();
 
-  //chartLabels: Label[] = [];
-  //public chartLabels: Label[] = ['January', 'February', 'March', 'April', 'May', 'June', 'July'];
-
-  // lineChartOptions: (ChartOptions & { annotation: any }) = {
-  //   responsive: true,
-
-  //   scales: {
-  //     // We use this empty structure as a placeholder for dynamic theming.
-  //     xAxes: [{}],
-  //     yAxes: [
-  //       {
-  //         id: 'y-axis-0',
-  //         position: 'left',
-  //       },
-  //       {
-  //         id: 'y-axis-1',
-  //         position: 'right',
-  //         gridLines: {
-  //           color: 'rgba(255,0,0,0.3)',
-  //         },
-  //         ticks: {
-  //           fontColor: 'red',
-  //         }
-  //       }
-  //     ]
-  //   },
-
-  //   annotation: {
-  //     annotations: [
-  //       {
-  //         type: 'line',
-  //         mode: 'vertical',
-  //         scaleID: 'x-axis-0',
-  //         value: 'March',
-  //         borderColor: 'orange',
-  //         borderWidth: 2,
-  //         label: {
-  //           enabled: true,
-  //           fontColor: 'orange',
-  //           content: 'LineAnno'
-  //         }
-  //       },
-  //     ],
-  //   },
-  // };
-
-  // public lineChartColors: Color[] = [
-  //   { // grey
-  //     backgroundColor: 'rgba(148,159,177,0.2)',
-  //     borderColor: 'rgba(148,159,177,1)',
-  //     pointBackgroundColor: 'rgba(148,159,177,1)',
-  //     pointBorderColor: '#fff',
-  //     pointHoverBackgroundColor: '#fff',
-  //     pointHoverBorderColor: 'rgba(148,159,177,0.8)'
-  //   },
-  //   // { // dark grey
-  //   //   backgroundColor: 'rgba(77,83,96,0.2)',
-  //   //   borderColor: 'rgba(77,83,96,1)',
-  //   //   pointBackgroundColor: 'rgba(77,83,96,1)',
-  //   //   pointBorderColor: '#fff',
-  //   //   pointHoverBackgroundColor: '#fff',
-  //   //   pointHoverBorderColor: 'rgba(77,83,96,1)'
-  //   // },
-  //   { // red
-  //     backgroundColor: 'rgba(255,0,0,0.3)',
-  //     borderColor: 'red',
-  //     pointBackgroundColor: 'rgba(148,159,177,1)',
-  //     pointBorderColor: '#fff',
-  //     pointHoverBackgroundColor: '#fff',
-  //     pointHoverBorderColor: 'rgba(148,159,177,0.8)'
-  //   }
-  // ];
-
-  public lineChartLegend = true;
-  public lineChartType: ChartType = 'line'; // line or bar
-
-  @ViewChild(BaseChartDirective, { static: true }) chart: BaseChartDirective;
 
   //
   // Construct.
   //
   constructor(private dataService: DataService, private cdr: ChangeDetectorRef) {
     // Receive data from the node app.
-    this.dataService.onData.subscribe((res) => {
+    const onData = this.dataService.onData.subscribe((res) => {
       this.onData(res);
     });
 
-    // let chart1 = this.getOrCreateChartObjByTitle("My First Chart");
-    // let chart2 = this.getOrCreateChartObjByTitle("My Second Chart");
+    // Add this subscription to the list to destroy in the end.
+    this.subscriptions.add(onData);
+  }
 
-    // chart1.Labels = ['January', 'February', 'March', 'April', 'May', 'June', 'July'];
-    // chart1.DataSet = [{ data: [65, 59, 80, 81, 56, 55, 40], label: 'Profits', fill: false, backgroundColor: 'rgba(255,0,0,0.3)' }];
+  //
+  // OnDestroy
+  //
+  ngOnDestroy() {
+    this.subscriptions.unsubscribe();
+  }
 
-    // chart2.Labels = ['Spicer', 'Gaga', 'Lady', 'Bird', 'Wood', 'Day', 'Loss'];
-    // chart2.DataSet = [{ data: [180, 480, 770, 90, 1000, 270, 400], label: 'Volume', yAxisID: 'y-axis-1', type: 'bar', backgroundColor: 'rgba(77,83,96,0.2)' }];
+  //
+  // Delete chart
+  //
+  deleteChart(event, chart: string) {
+    // Prevent click in browser.
+    event.preventDefault();
 
-    // this.activeChart = chart1;
+    // Delete the chart from our hash table
+    this.charts.delete(chart);
 
-    // setTimeout(() => {
-    //   this.chart.update();
-    // }, 1000);
+    // Set the first tab as the next active tab.
+    for (let row of this.charts.keys()) {
+      this.activeChart = row;
+      break;
+    }
 
-    // setTimeout(() => {
-    //   this.activeChart = chart2;
-    //   this.chart.update();
-    // }, 4000);
-
-
+    // Update UI.
+    this.cdr.detectChanges();
   }
 
   //
@@ -143,179 +71,85 @@ export class AppComponent {
   onData(res: any) {
     console.log(res);
 
-    // Get the chart object or create it
-    let chart = this.getOrCreateChartObjByTitle(res.title, res.labels);
+    // Get / Set xAxis
+    let xAxisValue = res.data[0];
 
-    // Set chart options.
-    chart.ChartOptions = this.getChartOptions(res);
+    // Get / Set yAxis (convert to numbers)
+    res.data.shift();
+    let yAxisValues = res.data;
 
-    // console.log(this.charts);
-
-    // Set X Axis
-    chart.Labels.push(res.data[0]);
-
-    // Set y Axis
-    for (let i = 0; i < res.labels.length; i++) {
-      chart.DataSet[i].data.push(res.data[i + 1]);
+    for (var i = 0; i < yAxisValues.length; i++) {
+      yAxisValues[i] = Number(yAxisValues[i]);
     }
 
-    // Update the chart.
-    this.chart.update();
+    // Is this the first time we have see this chart?
+    if (!this.charts.has(res.title)) {
+      // Build base chart
+      let chart = {
+        Title: res.title,
+        Labels: [xAxisValue],
+        DataSet: [
+          //{ data: [65, 59, 80, 81, 56, 55, 40], label: 'Profits', fill: false, backgroundColor: 'rgba(255,0,0,0.3)' }, // , tension: 0
+          //{ data: [180, 480, 770, 90, 1000, 270, 400], label: 'Volume', yAxisID: 'y-axis-1', type: 'bar', backgroundColor: 'rgba(77,83,96,0.2)' }
+        ],
+        ChartOptions: { responsive: true, scales: {}, annotation: {} }
+      }
+
+      // Build in the yaxis data
+      for (let i = 0; i < yAxisValues.length; i++) {
+        chart.DataSet.push({
+          data: [yAxisValues[i]],
+          label: res.labels[i],
+          //backgroundColor: 'rgba(255,0,0,0.3)',
+          type: res.configs[i].type,
+          fill: res.configs[i].fill
+        });
+      }
+
+      // Add chart to our map
+      this.charts.set(res.title, chart);
+
+      // Set to active chart since this is new data.
+      this.activeChart = res.title;
+
+      // Update screen.
+      this.cdr.detectChanges();
+
+      // Return happy
+      return;
+    }
+
+    // We are appending data it seems
+    let chart = this.charts.get(res.title);
+
+    // Set yAxis stuff
+    chart.Labels.push(xAxisValue);
+
+    // Add xAxis stuff
+    for (let i = 0; i < chart.DataSet.length; i++) {
+      chart.DataSet[i].data.push(yAxisValues[i]);
+    }
+
+    // Update the chart mapping.
+    this.charts.set(res.title, chart);
+
+    // See if we have an activeChart
+    if (this.activeChart.length == 0) {
+      this.activeChart = res.title;
+    }
+
+    // Update the UI.
+    this.cdr.detectChanges();
   }
 
   //
   // Tab Click
   //
-  changeTab(chart: Chart) {
+  changeTab(chart: string) {
     this.activeChart = chart;
-    this.chart.update();
+    this.cdr.detectChanges();
   }
 
-  //
-  // Clear all charts.
-  //
-  clearAllCharts(event) {
-    event.preventDefault();
-
-    this.charts = [];
-
-    this.activeChart = {
-      Title: "",
-      Active: false,
-      Labels: [],
-      DataSet: [],
-      ChartOptions: { responsive: true, scales: {}, annotation: {} }
-    };
-
-    this.chart.update();
-  }
-
-  //
-  // Get chart object by title
-  //
-  getOrCreateChartObjByTitle(title: string, labels: Label[]) {
-    // See if this is known chart
-    for (let i = 0; i < this.charts.length; i++) {
-      if (this.charts[i].Title == title) {
-        return this.charts[i]
-      }
-    }
-
-    // Add in datasets
-    let ds = [];
-    let lbs = [];
-
-    for (let i = 0; i < labels.length; i++) {
-      lbs.push(String(labels[i]));
-      ds.push({ data: [], label: String(labels[i]), fill: false, backgroundColor: 'rgba(255,0,0,0.3)' });
-    }
-
-    // Guess it is a new chart
-    let chart: Chart = {
-      Title: title,
-      Active: false,
-      Labels: lbs,
-      DataSet: ds,
-      ChartOptions: { responsive: true, scales: {}, annotation: {} }
-    }
-
-    // Return new chart.
-    this.charts.push(chart);
-
-    // Set the active chart
-    if (this.activeChart.Title == "") {
-      this.activeChart = chart;
-    }
-
-    // Refresh the UI to include the new nav
-    setTimeout(() => { this.cdr.detectChanges(); }, 100);
-
-    // Return the chart
-    return chart;
-  }
-
-  //
-  // getChartOptions for this chart
-  //
-  getChartOptions(res: any) {
-    let rt = {
-      responsive: true,
-
-      scales: {
-        // We use this empty structure as a placeholder for dynamic theming.
-        xAxes: [{}],
-        yAxes: [
-          {
-            id: 'y-axis-0',
-
-            position: 'left',
-
-            gridLines: {},
-
-            ticks: {}
-          }
-
-          //,
-          // {
-          //   id: 'y-axis-1',
-          //   position: 'right',
-          //   gridLines: {
-          //     color: 'rgba(255,0,0,0.3)',
-          //   },
-          //   ticks: {
-          //     fontColor: 'red',
-          //   }
-          // }
-        ]
-      },
-
-      annotation: {
-        annotations: [
-          {
-            type: 'line',
-            mode: 'vertical',
-            scaleID: 'x-axis-0',
-            value: 'March',
-            borderColor: 'orange',
-            borderWidth: 2,
-            label: {
-              enabled: true,
-              fontColor: 'orange',
-              content: 'LineAnno'
-            }
-          },
-        ],
-      },
-    }
-
-    // Do we have more than one dataset? If so add the axis on the right
-    if (res.labels.length > 1) {
-      rt.scales.yAxes.push({
-        id: 'y-axis-1',
-
-        position: 'right',
-
-        gridLines: {
-          color: 'rgba(255,0,0,0.3)'
-        },
-
-        ticks: {
-          fontColor: 'red',
-        }
-      });
-    }
-
-    // Return object
-    return rt;
-  }
-}
-
-export interface Chart {
-  Title: string,
-  Active: boolean,
-  Labels: Label[],
-  DataSet: ChartDataSets[],
-  ChartOptions: (ChartOptions & { annotation: any })
 }
 
 /* End File */
