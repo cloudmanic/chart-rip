@@ -69,7 +69,7 @@ export class AppComponent {
   // Process income data.
   //
   onData(res: any) {
-    console.log(res);
+    //console.log(res);
 
     // Get / Set xAxis
     let xAxisValue = res.data[0];
@@ -92,14 +92,23 @@ export class AppComponent {
           //{ data: [65, 59, 80, 81, 56, 55, 40], label: 'Profits', fill: false, backgroundColor: 'rgba(255,0,0,0.3)' }, // , tension: 0
           //{ data: [180, 480, 770, 90, 1000, 270, 400], label: 'Volume', yAxisID: 'y-axis-1', type: 'bar', backgroundColor: 'rgba(77,83,96,0.2)' }
         ],
-        ChartOptions: { responsive: true, scales: {}, annotation: {} }
+        ChartOptions: this.getChartOptions(res)
       }
 
       // Build in the yaxis data
       for (let i = 0; i < yAxisValues.length; i++) {
+        // Figure out which axis
+        let axisId = "y-axis-left"
+
+        if (res.configs[i].axis == "right") {
+          axisId = "y-axis-right"
+        }
+
+        // Push dataset on.
         chart.DataSet.push({
           data: [yAxisValues[i]],
           label: res.labels[i],
+          yAxisID: axisId,
           //backgroundColor: 'rgba(255,0,0,0.3)',
           type: res.configs[i].type,
           fill: res.configs[i].fill
@@ -149,6 +158,87 @@ export class AppComponent {
     this.activeChart = chart;
     this.cdr.detectChanges();
   }
+
+  //
+  // getChartOptions for this chart
+  //
+  getChartOptions(res: any) {
+    let rt = {
+      responsive: true,
+
+      scales: {
+        // We use this empty structure as a placeholder for dynamic theming.
+        xAxes: [{}],
+        yAxes: this.getYaxesConfig(res)
+      },
+
+      annotation: {
+        annotations: [
+          {
+            type: 'line',
+            mode: 'vertical',
+            scaleID: 'x-axis-0',
+            value: 'March',
+            borderColor: 'orange',
+            borderWidth: 2,
+            label: {
+              enabled: true,
+              fontColor: 'orange',
+              content: 'LineAnno'
+            }
+          },
+        ],
+      },
+    }
+
+    // Return object
+    return rt;
+  }
+
+  //
+  // getYaxesConfig 
+  //
+  getYaxesConfig(res: any) {
+    // Build base yAxes
+    let yAxes = [
+      {
+        id: 'y-axis-left',
+        position: 'left',
+        gridLines: {},
+        ticks: {}
+      }
+    ];
+
+    // Figure out how many yAxes to have.
+    if ((typeof res.configs == "object") && (typeof res.configs[0].axis == "string")) {
+      // First see if we have a right Y-Axis
+      let hasRight = false;
+
+      for (let row of res.configs) {
+        if (row.axis == "right") {
+          hasRight = true;
+        }
+      }
+
+      // Add right axes
+      if (hasRight) {
+        yAxes.push({
+          id: 'y-axis-right',
+          position: 'right',
+          gridLines: {
+            color: 'rgba(255,0,0,0.3)',
+          },
+          ticks: {
+            fontColor: 'red',
+          }
+        });
+      }
+    }
+
+    // Return config
+    return yAxes;
+  }
+
 
 }
 
